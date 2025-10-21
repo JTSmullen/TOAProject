@@ -1,7 +1,6 @@
 import unittest
 
-from Tarjan import Tarjan
-
+from algorithms.Tarjan import Tarjan
 
 class SimpleGraph:
 	"""A minimal graph implementation that provides get_nodes and get_neighbors
