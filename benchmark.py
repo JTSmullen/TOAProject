@@ -8,7 +8,6 @@ from collections import defaultdict
 import matplotlib.ticker as ticker
 import psutil
 import concurrent.futures
-import itertools
 import time
 from tqdm import tqdm  # progress bar for long-running processes
 
@@ -115,7 +114,7 @@ if __name__ == '__main__':
     matplotlib.use('Agg')  # To allow saving plots in headless environments
 
     # Config
-    NODE_COUNTS = [50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 35000, 50000, 75000, 100000]
+    NODE_COUNTS = [50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 7500, 10000]
     SCC_RATIOS = [0.05, 0.1, 0.25, 0.5, 1.0]
     INTERNAL_DENSITY = 0.2
 
@@ -151,34 +150,88 @@ if __name__ == '__main__':
 
     nodes_sorted = sorted(grouped.keys())
 
-    # Plot average runtime
-    plt.figure(figsize=(10, 6))
-    for algo in ['naive_time', 'tarjan_time']:
-        means = [np.mean([r[algo] for r in grouped[n]]) for n in nodes_sorted]
-        plt.plot(nodes_sorted, means, label=algo.replace('_', ' ').title())
+    # --- Plot average runtime ---
+    plt.figure(figsize=(12, 8))
+    
+    # --- Naive Algorithm Plotting ---
+    # Extract all data points for the naive algorithm
+    all_nodes_naive = [r['nodes'] for r in results]
+    all_times_naive = [r['naive_time'] for r in results]
+
+    # Scatter plot for all individual data points
+    plt.scatter(all_nodes_naive, all_times_naive, alpha=0.3, label='Naive DFS Data Points')
+
+    # Calculate and plot the mean line
+    mean_times_naive = [np.mean([r['naive_time'] for r in grouped[n]]) for n in nodes_sorted]
+    plt.plot(nodes_sorted, mean_times_naive, linestyle='--', marker='o', label='Naive DFS Mean Time')
+
+    # Calculate and plot the quadratic regression line
+    coeffs_naive = np.polyfit(all_nodes_naive, all_times_naive, 2)
+    poly_naive = np.poly1d(coeffs_naive)
+    x_poly_naive = np.linspace(min(nodes_sorted), max(nodes_sorted), 100)
+    y_poly_naive = poly_naive(x_poly_naive)
+    plt.plot(x_poly_naive, y_poly_naive, color='red', label='Naive DFS Quadratic Fit')
+
+    # --- Tarjan's Algorithm Plotting ---
+    # Extract all data points for Tarjan's algorithm
+    all_nodes_tarjan = [r['nodes'] for r in results]
+    all_times_tarjan = [r['tarjan_time'] for r in results]
+
+    # Scatter plot for all individual data points
+    plt.scatter(all_nodes_tarjan, all_times_tarjan, alpha=0.3, label="Tarjan's Data Points")
+
+    # Calculate and plot the mean line
+    mean_times_tarjan = [np.mean([r['tarjan_time'] for r in grouped[n]]) for n in nodes_sorted]
+    plt.plot(nodes_sorted, mean_times_tarjan, linestyle='--', marker='x', label="Tarjan's Mean Time")
 
     plt.title('Average Runtime vs Graph Size')
     plt.xlabel('Number of Nodes')
     plt.ylabel('Time (seconds)')
     plt.legend()
-    # plt.grid(True, which='both', linestyle='--', alpha=0.6)
     plt.xscale('log')
     plt.yscale('log')
+    plt.grid(True, which="both", ls="--")
     plt.tight_layout()
     plt.savefig('runtime_vs_size.png', dpi=300)
     print("Plot saved as runtime_vs_size.png")
+    plt.close()
 
-    plt.figure(figsize=(10, 6))
-    for algo in ['naive_mem_kb', 'tarjan_mem_kb']:
-        means = [np.mean([r[algo] for r in grouped[n]]) for n in nodes_sorted]
-        plt.plot(nodes_sorted, means, label=algo.replace('_', ' ').title())
+
+    # --- Plot peak memory usage ---
+    plt.figure(figsize=(12, 8))
+
+    # --- Naive Algorithm Plotting ---
+    # Extract all data points for the naive algorithm
+    all_nodes_naive_mem = [r['nodes'] for r in results]
+    all_mem_naive = [r['naive_mem_kb'] for r in results]
+
+    # Scatter plot for all individual data points
+    plt.scatter(all_nodes_naive_mem, all_mem_naive, alpha=0.3, label='Naive DFS Data Points')
+
+    # Calculate and plot the mean line
+    mean_mem_naive = [np.mean([r['naive_mem_kb'] for r in grouped[n]]) for n in nodes_sorted]
+    plt.plot(nodes_sorted, mean_mem_naive, linestyle='--', marker='o', label='Naive DFS Mean Memory')
+    
+    # --- Tarjan's Algorithm Plotting ---
+    # Extract all data points for Tarjan's algorithm
+    all_nodes_tarjan_mem = [r['nodes'] for r in results]
+    all_mem_tarjan = [r['tarjan_mem_kb'] for r in results]
+    
+    # Scatter plot for all individual data points
+    plt.scatter(all_nodes_tarjan_mem, all_mem_tarjan, alpha=0.3, label="Tarjan's Data Points")
+
+    # Calculate and plot the mean line
+    mean_mem_tarjan = [np.mean([r['tarjan_mem_kb'] for r in grouped[n]]) for n in nodes_sorted]
+    plt.plot(nodes_sorted, mean_mem_tarjan, linestyle='--', marker='x', label="Tarjan's Mean Memory")
 
     plt.title("Peak Memory Usage vs Graph Size")
     plt.xlabel('Number of Nodes')
     plt.ylabel('Memory Usage (KB)')
+    plt.legend()
     plt.xscale('log')
     plt.yscale('log')
+    plt.grid(True, which="both", ls="--")
     plt.tight_layout()
     plt.savefig('peak_memory_vs_size.png', dpi=300)
     print("Plot saved as peak_memory_vs_size.png")
-
+    plt.close()
