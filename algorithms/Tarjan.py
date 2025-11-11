@@ -14,6 +14,36 @@ class Tarjan:
 
     @timeit
     def run(self):
+        if self.isvisualize:
+            # Add the project root to the python path to allow importing visualize_tarjan
+            import sys
+            import os
+            # Correctly identify the project root by going up one level from the 'algorithms' directory
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            
+            from visualize_tarjan import tarjan_visualizer_generator, visualize_tarjan
+            import matplotlib.pyplot as plt
+
+            steps = list(tarjan_visualizer_generator(self.graph))
+            
+            plt.ion()
+            visualize_tarjan(self.graph, steps)
+            plt.ioff()
+            plt.show()
+            
+            # The original run method returns SCCs and elapsed time.
+            # The visualizer generator does not directly return these, so we need to extract the final SCCs.
+            final_sccs = []
+            if steps:
+                # Reconstruct the SCCs from the last step or by accumulating them
+                for step in steps:
+                    if step['description'].startswith("Found SCC"):
+                        final_sccs.append(step['scc'])
+
+            return final_sccs, 0 # Elapsed time is not measured in visualization mode.
+
         start_time = time.time()
 
         index_counter = 0
